@@ -22,11 +22,11 @@ async function loadProducts() {
             
             productCard.innerHTML = `
                 <img src="../images/${product.ImagePath}" 
-                     alt="${product.Name1}" 
+                     alt="${product.Name}" 
                      class="product-image"
                      onerror="this.src='https://via.placeholder.com/300x200?text=No+Image'">
                 <div class="product-info">
-                    <h3 class="product-title">${product.Name1}</h3>
+                    <h3 class="product-title">${product.Name}</h3>
                     <p class="product-description">${product.Description}</p>
                     <div class="product-price">${product.Price} ₽</div>
                     <button class="add-to-cart" data-product-id="${product.ProductID}">

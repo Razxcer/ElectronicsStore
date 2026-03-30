@@ -28,7 +28,7 @@ function addToCart(product) {
     } else {
         cart.push({
             id: product.ProductID,
-            name: product.Name1,
+            name: product.Name,
             price: product.Price,
             image: product.ImagePath,
             quantity: 1
