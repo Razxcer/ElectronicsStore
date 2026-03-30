@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Магазин электроники</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            padding: 20px;
+        }
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+        .product-image {
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            background: #f5f5f5;
+        }
+        .product-info {
+            padding: 15px;
+        }
+        .product-title {
+            font-size: 1.2rem;
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .product-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            line-height: 1.4;
+            height: 60px;
+            overflow: hidden;
+        }
+        .product-price {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+        .add-to-cart {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        .add-to-cart:hover {
+            background: #2980b9;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: white;
+        }
+        .cart-count {
+            background: #e74c3c;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 8px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <h1>📱 Магазин электроники</h1>
+            </div>
+            <nav>
+                <a href="index.html" class="active">Главная</a>
+                <div class="cart-icon" onclick="window.location.href='cart.html'">
+                    🛒 Корзина <span id="cart-count" class="cart-count">0</span>
+                </div>
+                <div id="user-info" class="user-info">
+                    <span id="user-name"></span>
+                    <button id="logout-btn" class="logout-btn" style="display:none;">Выйти</button>
+                    <a href="login.html" id="login-link">Войти</a>
+                    <a href="register.html" id="register-link">Регистрация</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="products-section">
+            <h2>🔥 Наши товары</h2>
+            <div id="products-container" class="products-grid">
+                <div class="loading">Загрузка товаров...</div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; Магазин электроники - Ляпина А.В.</p>
+        </div>
+    </footer>
+
+    <script>
+        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        
+        // счетчик корзины
+        function updateCartCount() {
+            const count = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const cartCountSpan = document.getElementById('cart-count');
+            if (cartCountSpan) cartCountSpan.textContent = count;
+        }
+        
+        // доб в корзину
+        function addToCart(product) {
+            const user = localStorage.getItem('user');
+            if (!user) {
+                alert('Пожалуйста, войдите в систему, чтобы добавить товар в корзину');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            const existingItem = cart.find(item => item.id === product.ProductID);
+            
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                cart.push({
+                    id: product.ProductID,
+                    name: product.Name1,
+                    price: product.Price,
+                    image: product.ImagePath,
+                    quantity: 1
+                });
+            }
+            
+            localStorage.setItem('cart', JSON.stringify(cart));
+            updateCartCount();
+            
+            // увед
+            const notification = document.createElement('div');
+            notification.textContent = '✓ Товар добавлен в корзину!';
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #27ae60;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                z-index: 1000;
+                animation: fadeInOut 2s ease;
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 2000);
+        }
+        
+        // загрузка товаров
+        async function loadProducts() {
+            const container = document.getElementById('products-container');
+            
+            try {
+                const response = await fetch(`/api.php/products`);
+                const products = await response.json();
+                
+                if (products.length === 0) {
+                    container.innerHTML = '<div class="loading">Товары не найдены</div>';
+                    return;
+                }
+                
+                container.innerHTML = products.map(product => `
+                    <div class="product-card">
+                        <img src="/images/${product.ImagePath}" 
+                             alt="${product.Name}" 
+                             class="product-image"
+                             onerror="this.src='https://via.placeholder.com/300x220?text=No+Image'">
+                        <div class="product-info">
+                            <h3 class="product-title">${product.Name}</h3>
+                            <p class="product-description">${product.Description}</p>
+                            <div class="product-price">${product.Price.toLocaleString()} ₽</div>
+                            <button class="add-to-cart" onclick='addToCart(${JSON.stringify(product)})'>
+                                🛒 Добавить в корзину
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Ошибка загрузки товаров:', error);
+                container.innerHTML = '<div class="loading">❌ Ошибка загрузки товаров. Проверьте подключение к серверу.</div>';
+            }
+        }
+        
+        // проверка вторизации
+        function checkAuth() {
+            const user = localStorage.getItem('user');
+            const userNameSpan = document.getElementById('user-name');
+            const logoutBtn = document.getElementById('logout-btn');
+            const loginLink = document.getElementById('login-link');
+            const registerLink = document.getElementById('register-link');
+            
+            if (user) {
+                const userData = JSON.parse(user);
+                if (userNameSpan) userNameSpan.textContent = `👤 ${userData.login}`;
+                if (logoutBtn) logoutBtn.style.display = 'inline-block';
+                if (loginLink) loginLink.style.display = 'none';
+                if (registerLink) registerLink.style.display = 'none';
+            } else {
+                if (userNameSpan) userNameSpan.textContent = '';
+                if (logoutBtn) logoutBtn.style.display = 'none';
+                if (loginLink) loginLink.style.display = 'inline';
+                if (registerLink) registerLink.style.display = 'inline';
+            }
+        }
+        
+        // выход
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('cart');
+            cart = [];
+            updateCartCount();
+            window.location.href = 'index.html';
+        }
+        
+        // аним
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateX(100px); }
+                15% { opacity: 1; transform: translateX(0); }
+                85% { opacity: 1; transform: translateX(0); }
+                100% { opacity: 0; transform: translateX(100px); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadProducts();
+            updateCartCount();
+            checkAuth();
+            
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', logout);
+            }
+        });
+    </script>
+</body>
+</html>
